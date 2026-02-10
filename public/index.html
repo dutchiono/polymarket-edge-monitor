@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket Edge Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #10b981;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .filters h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group input, .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .markets-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .market-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .market-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .market-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .market-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .edge-badge {
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .market-meta {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .market-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .prices {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .price-box {
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .price-box.yes {
+            background: #dcfce7;
+            border: 2px solid #10b981;
+        }
+
+        .price-box.no {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+        }
+
+        .price-box .label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .price-box .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .price-box.yes .value {
+            color: #10b981;
+        }
+
+        .price-box.no .value {
+            color: #ef4444;
+        }
+
+        .edge-info {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edge-type {
+            font-size: 12px;
+            font-weight: 600;
+            color: #667eea;
+            text-transform: uppercase;
+        }
+
+        .edge-score {
+            font-size: 18px;
+            font-weight: bold;
+            color: #f59e0b;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 10px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Polymarket Edge Monitor</h1>
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot" id="connectionStatus"></div>
+                    <span id="connectionText">Connecting...</span>
+                </div>
+                <div class="status-item">
+                    <span>Last Update: <strong id="lastUpdate">-</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Markets</h3>
+                <div class="value" id="totalMarkets">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Edge Opportunities</h3>
+                <div class="value" id="totalEdges">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Edge Score</h3>
+                <div class="value" id="avgEdgeScore">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Uptime</h3>
+                <div class="value" id="uptime">-</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <h3>Filters</h3>
+            <div class="filter-group">
+                <label>
+                    <input type="checkbox" id="filterEdgesOnly" checked>
+                    Show Edge Candidates Only
+                </label>
+                <label>
+                    Min Edge Score:
+                    <input type="number" id="minEdgeScore" value="0" min="0" step="5">
+                </label>
+                <label>
+                    Edge Type:
+                    <select id="edgeTypeFilter">
+                        <option value="">All Types</option>
+                        <option value="MISPRICING">Mispricing</option>
+                        <option value="EXTREME">Extreme</option>
+                        <option value="CATALYST">Catalyst</option>
+                        <option value="VOLUME_ANOMALY">Volume Anomaly</option>
+                        <option value="NEW_MARKET">New Market</option>
+                    </select>
+                </label>
+                <label>
+                    Sort By:
+                    <select id="sortBy">
+                        <option value="edgeScore">Edge Score</option>
+                        <option value="volume">Volume</option>
+                        <option value="liquidity">Liquidity</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <div class="markets-grid" id="marketsGrid">
+            <div class="no-data">
+                <h3>Loading markets...</h3>
+                <p>Waiting for data from server</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let allMarkets = [];
+        let allEdges = [];
+
+        // Connection status
+        socket.on('connect', () => {
+            document.getElementById('connectionStatus').className = 'status-dot connected';
+            document.getElementById('connectionText').textContent = 'Connected';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connectionStatus').className = 'status-dot disconnected';
+            document.getElementById('connectionText').textContent = 'Disconnected';
+        });
+
+        // Receive markets update
+        socket.on('markets-update', (data) => {
+            allMarkets = data.markets || [];
+            allEdges = data.edges || [];
+            
+            updateStats(data);
+            renderMarkets();
+        });
+
+        function updateStats(data) {
+            document.getElementById('totalMarkets').textContent = allMarkets.length;
+            document.getElementById('totalEdges').textContent = allEdges.length;
+            
+            const avgScore = allEdges.length > 0 
+                ? (allEdges.reduce((sum, e) => sum + e.edgeScore, 0) / allEdges.length).toFixed(1)
+                : '0';
+            document.getElementById('avgEdgeScore').textContent = avgScore;
+            
+            if (data.lastUpdate) {
+                const date = new Date(data.lastUpdate);
+                document.getElementById('lastUpdate').textContent = date.toLocaleTimeString();
+            }
+        }
+
+        function renderMarkets() {
+            const showEdgesOnly = document.getElementById('filterEdgesOnly').checked;
+            const minScore = parseFloat(document.getElementById('minEdgeScore').value) || 0;
+            const edgeTypeFilter = document.getElementById('edgeTypeFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            let marketsToShow = showEdgesOnly ? allEdges : allMarkets;
+
+            // Apply filters
+            marketsToShow = marketsToShow.filter(m => {
+                if (!m.edgeScore || m.edgeScore < minScore) return false;
+                if (edgeTypeFilter && (!m.edgeType || !m.edgeType.includes(edgeTypeFilter))) return false;
+                return true;
+            });
+
+            // Sort
+            marketsToShow.sort((a, b) => {
+                if (sortBy === 'edgeScore') return (b.edgeScore || 0) - (a.edgeScore || 0);
+                if (sortBy === 'volume') return (b.volume24h || 0) - (a.volume24h || 0);
+                if (sortBy === 'liquidity') return (b.liquidity || 0) - (a.liquidity || 0);
+                return 0;
+            });
+
+            const grid = document.getElementById('marketsGrid');
+            
+            if (marketsToShow.length === 0) {
+                grid.innerHTML = '<div class="no-data"><h3>No markets found</h3><p>Adjust filters to see more results</p></div>';
+                return;
+            }
+
+            grid.innerHTML = marketsToShow.map(market => {
+                const yesPrice = (market.yesPrice * 100).toFixed(1);
+                const noPrice = (market.noPrice * 100).toFixed(1);
+                const volume = market.volume24h ? `$${(market.volume24h / 1000).toFixed(1)}K` : '-';
+                const liquidity = market.liquidity ? `$${(market.liquidity / 1000).toFixed(1)}K` : '-';
+
+                return `
+                    <div class="market-card">
+                        <div class="market-header">
+                            <div class="market-title">${market.question || market.title || 'Untitled Market'}</div>
+                            ${market.edgeScore ? `<div class="edge-badge">${market.edgeScore.toFixed(1)}</div>` : ''}
+                        </div>
+                        <div class="market-meta">
+                            <span>📊 Volume: ${volume}</span>
+                            <span>💧 Liquidity: ${liquidity}</span>
+                        </div>
+                        <div class="prices">
+                            <div class="price-box yes">
+                                <div class="label">YES</div>
+                                <div class="value">${yesPrice}%</div>
+                            </div>
+                            <div class="price-box no">
+                                <div class="label">NO</div>
+                                <div class="value">${noPrice}%</div>
+                            </div>
+                        </div>
+                        ${market.edgeType ? `
+                            <div class="edge-info">
+                                <div class="edge-type">${market.edgeType}</div>
+                                <div class="edge-score">Score: ${market.edgeScore.toFixed(1)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Filter event listeners
+        document.getElementById('filterEdgesOnly').addEventListener('change', renderMarkets);
+        document.getElementById('minEdgeScore').addEventListener('input', renderMarkets);
+        document.getElementById('edgeTypeFilter').addEventListener('change', renderMarkets);
+        document.getElementById('sortBy').addEventListener('change', renderMarkets);
+
+        // Fetch uptime periodically
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                const hours = Math.floor(data.uptime / 3600);
+                const minutes = Math.floor((data.uptime % 3600) / 60);
+                document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+            } catch (error) {
+                console.error('Error fetching health:', error);
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
